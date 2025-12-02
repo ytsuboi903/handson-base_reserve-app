@@ -1,0 +1,197 @@
+import { useState, useEffect } from 'react';
+import { bookingApi, resourceApi } from '../services/api';
+import { Booking, Resource, BookingStatus } from '../types';
+import { format } from 'date-fns';
+
+/**
+ * BookingList Component
+ * Displays a list of all bookings with filtering options
+ */
+const BookingList = () => {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<BookingStatus | ''>('');
+
+  useEffect(() => {
+    fetchBookings();
+    fetchResources();
+  }, [filterStatus]);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const params = filterStatus ? { status: filterStatus } : undefined;
+      const data = await bookingApi.getAll(params);
+      setBookings(data);
+      setError(null);
+    } catch (err) {
+      setError('予約の取得に失敗しました');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchResources = async () => {
+    try {
+      const data = await resourceApi.getAll();
+      setResources(data);
+    } catch (err) {
+      console.error('Failed to fetch resources:', err);
+    }
+  };
+
+  const getResourceName = (resourceId: number): string => {
+    const resource = resources.find((r) => r.id === resourceId);
+    return resource ? resource.name : `リソースID: ${resourceId}`;
+  };
+
+  const handleCancel = async (id: number) => {
+    if (!window.confirm('この予約をキャンセルしますか?')) {
+      return;
+    }
+
+    try {
+      await bookingApi.cancel(id);
+      fetchBookings();
+    } catch (err) {
+      alert('キャンセルに失敗しました');
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('この予約を削除しますか?')) {
+      return;
+    }
+
+    try {
+      await bookingApi.delete(id);
+      fetchBookings();
+    } catch (err) {
+      alert('削除に失敗しました');
+      console.error(err);
+    }
+  };
+
+  const getStatusBadgeClass = (status: BookingStatus): string => {
+    switch (status) {
+      case BookingStatus.CONFIRMED:
+        return 'status-confirmed';
+      case BookingStatus.PENDING:
+        return 'status-pending';
+      case BookingStatus.CANCELLED:
+        return 'status-cancelled';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusText = (status: BookingStatus): string => {
+    switch (status) {
+      case BookingStatus.CONFIRMED:
+        return '確定';
+      case BookingStatus.PENDING:
+        return '保留中';
+      case BookingStatus.CANCELLED:
+        return 'キャンセル';
+      default:
+        return status;
+    }
+  };
+
+  if (loading) {
+    return <div className="loading">読み込み中...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
+
+  return (
+    <div className="booking-list">
+      <div className="list-header">
+        <h2>予約一覧</h2>
+        <div className="header-controls">
+          <div className="filter-controls">
+            <label>
+              ステータス:
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as BookingStatus | '')}
+              >
+                <option value="">すべて</option>
+                <option value={BookingStatus.CONFIRMED}>確定</option>
+                <option value={BookingStatus.PENDING}>保留中</option>
+                <option value={BookingStatus.CANCELLED}>キャンセル</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {bookings.length === 0 ? (
+        <p className="no-data">予約がありません</p>
+      ) : (
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>リソース</th>
+                <th>予約者</th>
+                <th>メール</th>
+                <th>開始時刻</th>
+                <th>終了時刻</th>
+                <th>ステータス</th>
+                <th>備考</th>
+                <th>アクション</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => (
+                <tr key={booking.id}>
+                  <td>{booking.id}</td>
+                  <td>{getResourceName(booking.resourceId)}</td>
+                  <td>{booking.customerName}</td>
+                  <td>{booking.customerEmail}</td>
+                  <td>{format(new Date(booking.startTime), 'yyyy/MM/dd HH:mm')}</td>
+                  <td>{format(new Date(booking.endTime), 'yyyy/MM/dd HH:mm')}</td>
+                  <td>
+                    <span className={`status-badge ${getStatusBadgeClass(booking.status)}`}>
+                      {getStatusText(booking.status)}
+                    </span>
+                  </td>
+                  <td>{booking.notes || '-'}</td>
+                  <td>
+                    <div className="action-buttons">
+                      {booking.status !== BookingStatus.CANCELLED && (
+                        <button
+                          onClick={() => handleCancel(booking.id!)}
+                          className="btn-cancel"
+                        >
+                          キャンセル
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(booking.id!)}
+                        className="btn-delete"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BookingList;
+
