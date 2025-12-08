@@ -19,8 +19,9 @@ spec:
         image: image-registry.openshift-image-registry.svc:5000/booking-management-system/booking-frontend:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 80
+        - containerPort: 8080
           protocol: TCP
+          name: http
         resources:
           requests:
             memory: "128Mi"
@@ -31,13 +32,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 80
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /
-            port: 80
+            port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
 ---
@@ -49,8 +50,8 @@ metadata:
     app: booking-frontend
 spec:
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 8080
+    targetPort: 8080
     protocol: TCP
     name: http
   selector:

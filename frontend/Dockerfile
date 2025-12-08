@@ -47,8 +47,8 @@ RUN mkdir -p /tmp/nginx/client_temp \
     awk '/^http {/ {print; print "    include /etc/nginx/conf.d/nginx-temp-paths.conf;"; next}1' /etc/nginx/nginx.conf > /tmp/nginx.conf.new && \
     mv /tmp/nginx.conf.new /etc/nginx/nginx.conf || true
 
-# ポート80を公開
-EXPOSE 80
+# ポート8080を公開（OpenShiftでは非特権ポートを使用）
+EXPOSE 8080
 
 # nginxを起動
 CMD ["nginx", "-g", "daemon off;"]
