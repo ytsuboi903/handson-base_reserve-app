@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: booking-backend
-        image: booking-backend:latest
-        imagePullPolicy: IfNotPresent
+        image: image-registry.openshift-image-registry.svc:5000/booking-management-system/booking-backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
           protocol: TCP

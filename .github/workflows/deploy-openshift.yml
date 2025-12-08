@@ -86,6 +86,15 @@ jobs:
         oc wait --for=condition=ready imagestream/booking-frontend --timeout=2m || true
         echo "ImageStreams ready"
 
+    - name: Wait for ImageStream tags
+      run: |
+        echo "Waiting for ImageStream tags to be available..."
+        # ImageStreamTagが利用可能になるまで待機
+        timeout 300 bash -c 'until oc get imagestreamtag booking-backend:latest > /dev/null 2>&1; do echo "Waiting for booking-backend:latest..."; sleep 5; done' || true
+        timeout 300 bash -c 'until oc get imagestreamtag booking-frontend:latest > /dev/null 2>&1; do echo "Waiting for booking-frontend:latest..."; sleep 5; done' || true
+        echo "ImageStream tags are available"
+        oc get imagestreamtags
+
     - name: Trigger deployment update
       run: |
         echo "Triggering deployment updates..."
