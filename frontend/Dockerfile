@@ -39,6 +39,9 @@ RUN mkdir -p /tmp/nginx/client_temp \
     chmod -R 755 /usr/share/nginx/html && \
     chmod -R 755 /etc/nginx/conf.d && \
     ([ -d /var/log/nginx ] && chmod -R 777 /var/log/nginx || true) && \
+    # メイン設定ファイルのpidディレクティブを/tmp/nginx.pidに変更
+    sed -i.bak 's|^pid .*|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
+    rm -f /etc/nginx/nginx.conf.bak || true && \
     # メイン設定ファイルのhttpブロック内に一時ディレクトリ設定をインクルード
     # awkコマンドを使用してhttpブロックの直後にincludeを追加
     awk '/^http {/ {print; print "    include /etc/nginx/conf.d/nginx-temp-paths.conf;"; next}1' /etc/nginx/nginx.conf > /tmp/nginx.conf.new && \
@@ -47,5 +50,5 @@ RUN mkdir -p /tmp/nginx/client_temp \
 # ポート80を公開
 EXPOSE 80
 
-# nginxを起動（pidファイルを/tmpに配置）
-CMD ["nginx", "-g", "pid /tmp/nginx.pid; daemon off;"]
+# nginxを起動
+CMD ["nginx", "-g", "daemon off;"]
