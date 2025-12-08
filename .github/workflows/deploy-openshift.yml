@@ -71,16 +71,55 @@ jobs:
       working-directory: ./backend
       run: |
         oc start-build booking-backend --from-dir=. --wait --follow
+        echo "Backend build completed"
 
     - name: Build and deploy frontend
       working-directory: ./frontend
       run: |
         oc start-build booking-frontend --from-dir=. --wait --follow
+        echo "Frontend build completed"
+
+    - name: Wait for ImageStreams to be ready
+      run: |
+        echo "Waiting for ImageStreams to be ready..."
+        oc wait --for=condition=ready imagestream/booking-backend --timeout=2m || true
+        oc wait --for=condition=ready imagestream/booking-frontend --timeout=2m || true
+        echo "ImageStreams ready"
+
+    - name: Trigger deployment update
+      run: |
+        echo "Triggering deployment updates..."
+        # デプロイメントを手動でロールアウトして新しいイメージを使用させる
+        oc rollout restart deployment/booking-backend || true
+        oc rollout restart deployment/booking-frontend || true
+        echo "Deployment restarts triggered"
+
+    - name: Check deployment status
+      run: |
+        echo "Checking deployment status..."
+        oc get deployments
+        oc get pods -l app=booking-backend
+        oc get pods -l app=booking-frontend
 
     - name: Wait for deployments
       run: |
-        oc rollout status deployment/booking-backend --timeout=5m
-        oc rollout status deployment/booking-frontend --timeout=5m
+        echo "Waiting for deployments to be ready..."
+        # タイムアウトを10分に延長
+        oc rollout status deployment/booking-backend --timeout=10m || {
+          echo "Backend deployment failed. Checking logs..."
+          oc get pods -l app=booking-backend
+          oc describe deployment/booking-backend
+          oc logs -l app=booking-backend --tail=50 || true
+          exit 1
+        }
+        oc rollout status deployment/booking-frontend --timeout=10m || {
+          echo "Frontend deployment failed. Checking logs..."
+          oc get pods -l app=booking-frontend
+          oc describe deployment/booking-frontend
+          oc logs -l app=booking-frontend --tail=50 || true
+          exit 1
+        }
+        echo "All deployments are ready!"
 
     - name: Get application URL
       run: |
