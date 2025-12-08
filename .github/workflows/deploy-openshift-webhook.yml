@@ -1,0 +1,49 @@
+name: Deploy to OpenShift (Webhook)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
+  OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+  OPENSHIFT_PROJECT: booking-management
+
+jobs:
+  trigger-openshift-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Install OpenShift CLI
+      run: |
+        curl -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz | tar -xz
+        sudo mv oc kubectl /usr/local/bin/
+
+    - name: Login to OpenShift
+      run: |
+        oc login --server=${{ env.OPENSHIFT_SERVER }} --token=${{ env.OPENSHIFT_TOKEN }} --insecure-skip-tls-verify=true
+
+    - name: Trigger backend build via webhook
+      run: |
+        WEBHOOK_URL=$(oc get bc booking-backend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.webhookURL}')
+        if [ -n "$WEBHOOK_URL" ]; then
+          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d '{"ref":"main"}'
+        else
+          echo "Webhook URL not found. Creating build manually..."
+          oc start-build booking-backend --from-commit=$(git rev-parse HEAD)
+        fi
+
+    - name: Trigger frontend build via webhook
+      run: |
+        WEBHOOK_URL=$(oc get bc booking-frontend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.webhookURL}')
+        if [ -n "$WEBHOOK_URL" ]; then
+          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d '{"ref":"main"}'
+        else
+          echo "Webhook URL not found. Creating build manually..."
+          oc start-build booking-frontend --from-commit=$(git rev-parse HEAD)
+        fi
+
+

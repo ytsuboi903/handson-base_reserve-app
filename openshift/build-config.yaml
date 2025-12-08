@@ -1,0 +1,73 @@
+# バックエンドのBuildConfig
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: booking-backend
+  labels:
+    app: booking-backend
+spec:
+  source:
+    type: Binary
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: booking-backend:latest
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secret: github-webhook-secret
+    - type: Generic
+      generic:
+        secret: generic-webhook-secret
+        allowEnv: true
+---
+# フロントエンドのBuildConfig
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: booking-frontend
+  labels:
+    app: booking-frontend
+spec:
+  source:
+    type: Binary
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: booking-frontend:latest
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secret: github-webhook-secret
+    - type: Generic
+      generic:
+        secret: generic-webhook-secret
+        allowEnv: true
+---
+# ImageStream定義
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: booking-backend
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: booking-frontend
+spec:
+  lookupPolicy:
+    local: false
+

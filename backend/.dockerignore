@@ -1,0 +1,23 @@
+# Git関連
+.git
+.gitignore
+
+# IDE関連
+.idea
+.vscode
+*.iml
+
+# ビルド成果物
+target/
+
+# ログファイル
+*.log
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# テスト関連
+src/test/
+
+
