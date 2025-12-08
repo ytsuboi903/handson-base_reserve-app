@@ -46,7 +46,7 @@ GitHub Actionsのタブで、ワークフローの実行状況を確認できま
 ```bash
 # OpenShiftにログイン
 oc login <your-openshift-cluster-url>
-oc project booking-management
+oc project booking-management-system
 
 # Webhook設定スクリプトを実行
 cd openshift

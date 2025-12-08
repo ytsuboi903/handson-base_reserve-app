@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: booking-frontend
+  labels:
+    app: booking-frontend
+spec:
+  to:
+    kind: Service
+    name: booking-frontend
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+

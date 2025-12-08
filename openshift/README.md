@@ -16,7 +16,7 @@
 oc login <your-openshift-cluster-url>
 
 # 2. プロジェクトを作成
-oc new-project booking-management
+oc new-project booking-management-system
 
 # 3. イメージをビルド（バックエンド）
 cd ../backend

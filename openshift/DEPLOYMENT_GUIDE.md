@@ -31,10 +31,10 @@ oc login --token=<your-token> --server=<your-server-url>
 
 ```bash
 # 新しいプロジェクトを作成
-oc new-project booking-management
+oc new-project booking-management-system
 
 # または既存のプロジェクトを使用
-oc project booking-management
+oc project booking-management-system
 ```
 
 ### 3. コンテナイメージのビルドとプッシュ
@@ -88,19 +88,19 @@ docker build -t booking-backend:latest .
 REGISTRY_URL=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
 
 # イメージをタグ付け
-docker tag booking-backend:latest ${REGISTRY_URL}/booking-management/booking-backend:latest
+docker tag booking-backend:latest ${REGISTRY_URL}/booking-management-system/booking-backend:latest
 
 # レジストリにログイン
 docker login -u $(oc whoami) -p $(oc whoami -t) ${REGISTRY_URL}
 
 # イメージをプッシュ
-docker push ${REGISTRY_URL}/booking-management/booking-backend:latest
+docker push ${REGISTRY_URL}/booking-management-system/booking-backend:latest
 
 # フロントエンドも同様に
 cd ../frontend
 docker build -t booking-frontend:latest .
-docker tag booking-frontend:latest ${REGISTRY_URL}/booking-management/booking-frontend:latest
-docker push ${REGISTRY_URL}/booking-management/booking-frontend:latest
+docker tag booking-frontend:latest ${REGISTRY_URL}/booking-management-system/booking-frontend:latest
+docker push ${REGISTRY_URL}/booking-management-system/booking-frontend:latest
 ```
 
 ### 4. デプロイメントの作成
