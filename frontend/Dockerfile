@@ -6,7 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # 依存関係をインストール
-RUN npm ci
+# npm ciのバグでオプショナル依存関係がインストールされない場合があるため、
+# npm install --forceを使用（Alpine Linux用の@rollup/rollup-linux-x64-muslも含む）
+RUN npm install --force
 
 # ソースコードをコピー
 COPY . .
