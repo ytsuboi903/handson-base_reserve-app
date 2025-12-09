@@ -41,10 +41,8 @@ jobs:
     - name: Build frontend
       working-directory: ./frontend
       run: |
-        npm ci
         # npm ciのバグでオプショナル依存関係がインストールされない場合があるため、
-        # node_modulesを削除してからnpm installを実行
-        rm -rf node_modules
+        # npm installを使用（package-lock.jsonは保持）
         npm install
         npm run build
 
