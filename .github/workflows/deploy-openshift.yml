@@ -42,8 +42,8 @@ jobs:
       working-directory: ./frontend
       run: |
         # npm ciのバグでオプショナル依存関係がインストールされない場合があるため、
-        # npm installを使用（package-lock.jsonは保持）
-        npm install
+        # npm install --forceを使用（package.jsonに@rollup/rollup-linux-x64-gnuをoptionalDependenciesとして追加済み）
+        npm install --force
         npm run build
 
     - name: Install OpenShift CLI
