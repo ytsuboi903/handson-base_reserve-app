@@ -42,8 +42,10 @@ jobs:
       working-directory: ./frontend
       run: |
         npm ci
-        # オプショナル依存関係を確実にインストール
-        npm install --no-save
+        # npm ciのバグでオプショナル依存関係がインストールされない場合があるため、
+        # node_modulesを削除してからnpm installを実行
+        rm -rf node_modules
+        npm install
         npm run build
 
     - name: Install OpenShift CLI
