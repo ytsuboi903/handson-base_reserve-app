@@ -40,7 +40,11 @@ jobs:
 
     - name: Build frontend
       working-directory: ./frontend
-      run: npm ci && npm run build
+      run: |
+        npm ci
+        # オプショナル依存関係を確実にインストール
+        npm install --no-save
+        npm run build
 
     - name: Install OpenShift CLI
       run: |
