@@ -91,11 +91,3 @@ export const bookingApi = {
 
 export default api;
 
-// Notification API
-export const notificationApi = {
-  getAll: async (): Promise<any[]> => {
-    const response = await api.get('/notifications');
-    return response.data;
-  },
-};
-

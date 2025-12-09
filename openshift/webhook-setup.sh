@@ -44,6 +44,14 @@ echo "========================================="
 BACKEND_GITHUB_WEBHOOK=$(oc describe bc booking-backend | grep -A 1 "GitHub" | grep "URL" | awk '{print $NF}' || echo "未設定")
 FRONTEND_GITHUB_WEBHOOK=$(oc describe bc booking-frontend | grep -A 1 "GitHub" | grep "URL" | awk '{print $NF}' || echo "未設定")
 
+# <secret>を実際のSecret値で置き換え
+if [[ "$BACKEND_GITHUB_WEBHOOK" == *"<secret>"* ]]; then
+    BACKEND_GITHUB_WEBHOOK=$(echo "$BACKEND_GITHUB_WEBHOOK" | sed "s|<secret>|${GITHUB_SECRET}|g")
+fi
+if [[ "$FRONTEND_GITHUB_WEBHOOK" == *"<secret>"* ]]; then
+    FRONTEND_GITHUB_WEBHOOK=$(echo "$FRONTEND_GITHUB_WEBHOOK" | sed "s|<secret>|${GITHUB_SECRET}|g")
+fi
+
 echo "バックエンド: ${BACKEND_GITHUB_WEBHOOK}"
 echo "フロントエンド: ${FRONTEND_GITHUB_WEBHOOK}"
 
@@ -54,6 +62,14 @@ echo "========================================="
 
 BACKEND_GENERIC_WEBHOOK=$(oc describe bc booking-backend | grep -A 1 "Generic" | grep "URL" | awk '{print $NF}' || echo "未設定")
 FRONTEND_GENERIC_WEBHOOK=$(oc describe bc booking-frontend | grep -A 1 "Generic" | grep "URL" | awk '{print $NF}' || echo "未設定")
+
+# <secret>を実際のSecret値で置き換え
+if [[ "$BACKEND_GENERIC_WEBHOOK" == *"<secret>"* ]]; then
+    BACKEND_GENERIC_WEBHOOK=$(echo "$BACKEND_GENERIC_WEBHOOK" | sed "s|<secret>|${GENERIC_SECRET}|g")
+fi
+if [[ "$FRONTEND_GENERIC_WEBHOOK" == *"<secret>"* ]]; then
+    FRONTEND_GENERIC_WEBHOOK=$(echo "$FRONTEND_GENERIC_WEBHOOK" | sed "s|<secret>|${GENERIC_SECRET}|g")
+fi
 
 echo "バックエンド: ${BACKEND_GENERIC_WEBHOOK}"
 echo "フロントエンド: ${FRONTEND_GENERIC_WEBHOOK}"
