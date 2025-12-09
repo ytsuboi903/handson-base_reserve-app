@@ -83,21 +83,15 @@ jobs:
         oc start-build booking-frontend --from-dir=. --wait --follow
         echo "Frontend build completed"
 
-    - name: Wait for ImageStreams to be ready
+    - name: Verify ImageStream tags
       run: |
-        echo "Waiting for ImageStreams to be ready..."
-        oc wait --for=condition=ready imagestream/booking-backend --timeout=2m || true
-        oc wait --for=condition=ready imagestream/booking-frontend --timeout=2m || true
-        echo "ImageStreams ready"
-
-    - name: Wait for ImageStream tags
-      run: |
-        echo "Waiting for ImageStream tags to be available..."
-        # ImageStreamTagが利用可能になるまで待機
-        timeout 300 bash -c 'until oc get imagestreamtag booking-backend:latest > /dev/null 2>&1; do echo "Waiting for booking-backend:latest..."; sleep 5; done' || true
-        timeout 300 bash -c 'until oc get imagestreamtag booking-frontend:latest > /dev/null 2>&1; do echo "Waiting for booking-frontend:latest..."; sleep 5; done' || true
-        echo "ImageStream tags are available"
-        oc get imagestreamtags
+        echo "Verifying ImageStream tags are available..."
+        # oc start-build --waitでビルド完了を待っているので、ImageStreamTagもすぐに利用可能になるはず
+        # 短い待機時間で確認（最大10秒、1秒間隔）
+        timeout 10 bash -c 'until oc get imagestreamtag booking-backend:latest > /dev/null 2>&1; do echo "Waiting for booking-backend:latest..."; sleep 1; done' || echo "Warning: booking-backend:latest not found yet"
+        timeout 10 bash -c 'until oc get imagestreamtag booking-frontend:latest > /dev/null 2>&1; do echo "Waiting for booking-frontend:latest..."; sleep 1; done' || echo "Warning: booking-frontend:latest not found yet"
+        echo "ImageStream tags verification completed"
+        oc get imagestreamtags || true
 
     - name: Trigger deployment update
       run: |
