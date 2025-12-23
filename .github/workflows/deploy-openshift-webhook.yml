@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - sandbox
+      - 'team*-sandbox'
+      - 'team*'
   workflow_dispatch:
 
 env:
   OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER }}
   OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
-  OPENSHIFT_PROJECT: booking-management-system
 
 jobs:
   trigger-openshift-build:
@@ -21,28 +22,90 @@ jobs:
         curl -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz | tar -xz
         sudo mv oc kubectl /usr/local/bin/
 
+    - name: Extract team identifier
+      id: team
+      run: |
+        BRANCH_NAME="${{ github.ref_name }}"
+        echo "Branch name: $BRANCH_NAME"
+        
+        # ブランチ名からチーム識別子を抽出
+        if [[ "$BRANCH_NAME" == "sandbox" ]] || [[ "$BRANCH_NAME" == "main" ]]; then
+          TEAM_ID="default"
+        elif [[ "$BRANCH_NAME" =~ ^team([0-9]+)(-.*)?$ ]]; then
+          # team1-sandbox または team1 から team1 を抽出
+          TEAM_ID="team${BASH_REMATCH[1]}"
+        else
+          # その他のブランチ名から最初の部分を抽出（ハイフン区切り）
+          TEAM_ID=$(echo "$BRANCH_NAME" | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
+          if [ -z "$TEAM_ID" ]; then
+            TEAM_ID="default"
+          fi
+        fi
+        
+        # OpenShiftプロジェクト名は小文字とハイフンのみ許可
+        TEAM_ID=$(echo "$TEAM_ID" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g')
+        
+        # プロジェクト名を生成（最大63文字、小文字、数字、ハイフンのみ）
+        # booking- は8文字なので、TEAM_IDは最大55文字まで
+        MAX_TEAM_ID_LENGTH=55
+        if [ ${#TEAM_ID} -gt $MAX_TEAM_ID_LENGTH ]; then
+          TEAM_ID="${TEAM_ID:0:$MAX_TEAM_ID_LENGTH}"
+        fi
+        PROJECT_NAME="booking-${TEAM_ID}"
+        
+        echo "team_id=$TEAM_ID" >> $GITHUB_OUTPUT
+        echo "project_name=$PROJECT_NAME" >> $GITHUB_OUTPUT
+        echo "Team ID: $TEAM_ID"
+        echo "Project Name: $PROJECT_NAME"
+
     - name: Login to OpenShift
       run: |
         oc login --server=${{ env.OPENSHIFT_SERVER }} --token=${{ env.OPENSHIFT_TOKEN }} --insecure-skip-tls-verify=true
 
+    - name: Create or select project
+      run: |
+        PROJECT_NAME="${{ steps.team.outputs.project_name }}"
+        if oc get project "$PROJECT_NAME" > /dev/null 2>&1; then
+          oc project "$PROJECT_NAME"
+        else
+          oc new-project "$PROJECT_NAME"
+        fi
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Trigger backend build via webhook
       run: |
-        WEBHOOK_URL=$(oc get bc booking-backend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.webhookURL}')
+        PROJECT_NAME="${{ steps.team.outputs.project_name }}"
+        BRANCH_NAME="${{ github.ref_name }}"
+        WEBHOOK_URL=$(oc get bc booking-backend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.webhookURL}' 2>/dev/null || echo "")
         if [ -n "$WEBHOOK_URL" ]; then
-          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d '{"ref":"sandbox"}'
+          # Webhook URLの<secret>を実際のシークレット値に置換
+          SECRET=$(oc get bc booking-backend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.secret}' 2>/dev/null || echo "")
+          if [ -n "$SECRET" ]; then
+            WEBHOOK_URL=$(echo "$WEBHOOK_URL" | sed "s/<secret>/$SECRET/g")
+          fi
+          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"ref\":\"$BRANCH_NAME\"}"
         else
           echo "Webhook URL not found. Creating build manually..."
-          oc start-build booking-backend --from-commit=$(git rev-parse HEAD)
+          oc start-build booking-backend --from-dir=. --wait --follow || true
         fi
 
     - name: Trigger frontend build via webhook
       run: |
-        WEBHOOK_URL=$(oc get bc booking-frontend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.webhookURL}')
+        PROJECT_NAME="${{ steps.team.outputs.project_name }}"
+        BRANCH_NAME="${{ github.ref_name }}"
+        WEBHOOK_URL=$(oc get bc booking-frontend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.webhookURL}' 2>/dev/null || echo "")
         if [ -n "$WEBHOOK_URL" ]; then
-          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d '{"ref":"sandbox"}'
+          # Webhook URLの<secret>を実際のシークレット値に置換
+          SECRET=$(oc get bc booking-frontend -o jsonpath='{.spec.triggers[?(@.type=="Generic")].generic.secret}' 2>/dev/null || echo "")
+          if [ -n "$SECRET" ]; then
+            WEBHOOK_URL=$(echo "$WEBHOOK_URL" | sed "s/<secret>/$SECRET/g")
+          fi
+          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"ref\":\"$BRANCH_NAME\"}"
         else
           echo "Webhook URL not found. Creating build manually..."
-          oc start-build booking-frontend --from-commit=$(git rev-parse HEAD)
+          oc start-build booking-frontend --from-dir=. --wait --follow || true
         fi
 
 
