@@ -187,3 +187,107 @@ reference: README.md
 - TypeScript
 - Maven
 - npm
+
+---
+
+## 複数チーム同時実施について
+
+このプロジェクトは、複数のチームが同時にハンズオンを実施できるよう設計されています。各チームは独立したOpenShiftプロジェクトで作業するため、コード変更を共有する必要はありません。
+
+詳細は [MULTI_TEAM_GUIDE.md](./MULTI_TEAM_GUIDE.md) を参照してください。
+
+### クイックスタート（複数チーム）
+
+1. チームごとにブランチを作成:
+   ```bash
+   git checkout -b team1-sandbox  # チーム1
+   git checkout -b team2-sandbox  # チーム2
+   ```
+
+2. ブランチをプッシュ:
+   ```bash
+   git push origin team1-sandbox
+   ```
+
+3. GitHub Actionsが自動的に各チーム専用のOpenShiftプロジェクトにデプロイします。
+
+---
+
+## OpenShiftへのデプロイ
+
+コードを変更してGitHubにpushすると、自動的にOpenShiftにデプロイされます。
+
+### デプロイの流れ（概要）
+
+1. **コードのpush**
+   - `sandbox`ブランチや`team*-sandbox`ブランチにpush
+   - GitHub Actionsワークフローが自動的にトリガー
+
+2. **ビルド**
+   - バックエンド: MavenでJavaアプリケーションをビルド
+   - フロントエンド: npmでReactアプリケーションをビルド
+
+3. **OpenShiftプロジェクトの準備**
+   - ブランチ名からチーム識別子を抽出
+   - 対応するOpenShiftプロジェクトを作成（存在しない場合）
+   - 例: `team1-sandbox` → `booking-team1`プロジェクト
+
+4. **OpenShiftリソースの適用**
+   - BuildConfig（イメージビルド設定）
+   - Deployment（アプリケーション配置）
+   - Service（内部通信）
+   - Route（外部アクセス）
+
+5. **イメージのビルドとデプロイ**
+   - OpenShiftの内部レジストリでコンテナイメージをビルド
+   - ビルド完了後、Deploymentが自動的に新しいイメージを使用してアプリケーションを起動
+
+6. **デプロイメントの確認**
+   - Podが正常に起動するまで待機
+   - ヘルスチェックでアプリケーションの状態を確認
+
+7. **アプリケーションへのアクセス**
+   - RouteのURLが自動生成され、ブラウザからアクセス可能
+
+### 必要な設定
+
+デプロイを有効にするには、GitHubリポジトリのSecretsに以下を設定する必要があります：
+
+- `OPENSHIFT_SERVER`: OpenShiftクラスターのURL
+- `OPENSHIFT_TOKEN`: OpenShiftの認証トークン
+
+詳細は [.github/workflows/README.md](./.github/workflows/README.md) を参照してください。
+
+---
+
+## 環境のリセット
+
+ハンズオン中に問題が発生した場合、環境を着手前の段階に戻すことができます。
+
+**詳細は [RESET_ENVIRONMENT.md](./RESET_ENVIRONMENT.md) を参照してください。**
+
+### クイックリセット（スクリプト使用）
+
+```bash
+# macOS/Linux
+./reset-environment.sh
+
+# Windows (PowerShell)
+.\reset-environment.ps1
+```
+
+---
+
+## 📝 アテンド担当および関係者向け動作確認方法
+
+ハンズオン実施前に、ローカル環境での動作確認を行ってください。
+
+**詳細は [HANDSON_PREPARATION.md](./HANDSON_PREPARATION.md) を参照してください。**
+
+### 確認事項
+
+- バックエンド・フロントエンドがローカル環境で正常に起動できること
+- 既存機能（予約作成、一覧表示など）が動作すること
+- GitHub Copilotが正常に動作すること
+
+**注意**: OpenShift環境は予行実施およびハンズオン本番の当日のみ稼働しています。事前準備時点ではOpenShift環境は利用できません。

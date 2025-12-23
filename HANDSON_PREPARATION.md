@@ -62,7 +62,7 @@
 ```bash
 # Gitを使用する場合
 git clone <repository-url>
-cd demo1
+cd agentic-ai-handson
 
 # または、ZIPファイルをダウンロードして展開
 ```
@@ -119,6 +119,34 @@ npm run dev
 #### 事前準備ファイル
 - [ ] `.github/copilot-instructions.md` が存在する
 
+#### OpenShift関連（検証環境として使用する場合）
+- [ ] OpenShiftクラスターへのアクセス権限がある
+- [ ] GitHubリポジトリのSecretsに以下が設定されている（自動デプロイを使用する場合）
+  - [ ] `OPENSHIFT_SERVER`: OpenShiftクラスターのURL
+  - [ ] `OPENSHIFT_TOKEN`: OpenShiftの認証トークン
+- [ ] 複数チームで実施する場合、各チーム用のブランチ戦略を理解している
+
+---
+
+## ⚠️ 留意事項
+
+### OpenShift環境について
+
+**OpenShiftクラスターは予行実施およびハンズオン本番の当日のみ稼働しています。**
+
+- 事前準備時点ではOpenShift環境は利用できません
+- ハンズオン当日にOpenShift環境が利用可能になります
+- 予行実施時にもOpenShift環境が利用可能です
+
+そのため、事前準備では以下の点を確認してください：
+
+- ローカル環境での動作確認（バックエンド・フロントエンドの起動）
+- GitHubリポジトリのSecrets設定（OpenShiftへの自動デプロイを使用する場合）
+  - `OPENSHIFT_SERVER`: OpenShiftクラスターのURL
+  - `OPENSHIFT_TOKEN`: OpenShiftの認証トークン（当日に取得可能）
+
+OpenShift環境の詳細については、[HANDSON_DESIGN.md](./HANDSON_DESIGN.md)の「OpenShiftへのデプロイ」セクションを参照してください。
+
 ---
 
 ## 🆘 トラブルシューティング
@@ -139,3 +167,31 @@ npm run dev
 - アカウントがログインしているか確認
 - 拡張機能が有効か確認
 - ネットワーク接続を確認
+
+#### 4. 環境をリセットしたい
+ハンズオン中に問題が発生した場合、環境をリセットできます：
+
+```bash
+# macOS/Linux
+./reset-environment.sh
+
+# Windows (PowerShell)
+.\reset-environment.ps1
+```
+
+詳細は [RESET_ENVIRONMENT.md](./RESET_ENVIRONMENT.md) を参照してください。
+
+#### 5. OpenShiftへのデプロイが失敗する
+- GitHub Secretsが正しく設定されているか確認
+- OpenShiftクラスターへのアクセス権限を確認
+- GitHub Actionsのログを確認
+- 詳細は [.github/workflows/README.md](./.github/workflows/README.md) を参照
+
+---
+
+## 📚 関連ドキュメント
+
+- [HANDSON_DESIGN.md](./HANDSON_DESIGN.md): ハンズオンの設計とタイムライン
+- [RESET_ENVIRONMENT.md](./RESET_ENVIRONMENT.md): 環境リセット手順
+- [MULTI_TEAM_GUIDE.md](./MULTI_TEAM_GUIDE.md): 複数チーム同時実施ガイド
+- [.github/workflows/README.md](./.github/workflows/README.md): GitHub Actionsワークフロー設定
