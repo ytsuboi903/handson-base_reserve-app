@@ -6,6 +6,7 @@ import com.booking.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -21,6 +22,14 @@ import java.util.Optional;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+
+    @Autowired(required = false)
+    private NotificationService notificationService;
+
+    // Setter used by tests to inject a mock NotificationService when needed
+    public void setNotificationService(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     /**
      * Get all bookings
@@ -128,6 +137,10 @@ public class BookingService {
         }
 
         Booking created = bookingRepository.save(booking);
+
+        if (notificationService != null) {
+            notificationService.createNotificationForBooking(created);
+        }
 
         return created;
     }

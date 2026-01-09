@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { bookingApi, resourceApi } from '../services/api';
 import { Booking, Resource, BookingStatus } from '../types';
 import { format } from 'date-fns';
+import NotificationModal from './NotificationModal';
 
 /**
  * BookingList Component
@@ -13,6 +14,7 @@ const BookingList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<BookingStatus | ''>('');
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -129,8 +131,15 @@ const BookingList = () => {
               </select>
             </label>
           </div>
+          <div className="notification-link">
+            <button onClick={() => setShowNotifications(true)}>通知一覧</button>
+          </div>
         </div>
       </div>
+
+      {showNotifications && (
+        <NotificationModal onClose={() => setShowNotifications(false)} />
+      )}
 
       {bookings.length === 0 ? (
         <p className="no-data">予約がありません</p>
