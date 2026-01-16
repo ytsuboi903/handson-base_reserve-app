@@ -7,21 +7,20 @@ import { Resource } from '../types';
  * Displays a list of all resources
  */
 const ResourceList = () => {
-  const [resources, setResources] = useState<Resource[]>([]);
+  const [allResources, setAllResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchResources();
-  }, [searchTerm]);
+  }, []);
 
   const fetchResources = async () => {
     try {
       setLoading(true);
-      const params = searchTerm ? { search: searchTerm } : undefined;
-      const data = await resourceApi.getAll(params);
-      setResources(data);
+      const data = await resourceApi.getAll();
+      setAllResources(data);
       setError(null);
     } catch (err) {
       setError('リソースの取得に失敗しました');
@@ -30,6 +29,10 @@ const ResourceList = () => {
       setLoading(false);
     }
   };
+
+  const filteredResources = allResources.filter((resource) =>
+    resource.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return <div className="loading">読み込み中...</div>;
@@ -53,11 +56,11 @@ const ResourceList = () => {
         </div>
       </div>
 
-      {resources.length === 0 ? (
+      {filteredResources.length === 0 ? (
         <p className="no-data">リソースがありません</p>
       ) : (
         <div className="resource-grid">
-          {resources.map((resource) => (
+          {filteredResources.map((resource) => (
             <div key={resource.id} className="resource-card">
               <div className="resource-card-header">
                 <h3>{resource.name}</h3>
