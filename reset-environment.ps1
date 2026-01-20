@@ -96,7 +96,8 @@ try {
 # Frontend
 Write-Host '  Installing frontend dependencies...' -ForegroundColor Yellow
 Set-Location ../frontend
-$npmOutput = & npm.cmd install 2>&1
+# Use cmd.exe to avoid PowerShell treating stderr as terminating errors
+$npmOutput = & cmd /c "npm.cmd install 2>&1"
 $npmExitCode = $LASTEXITCODE
 if ($npmOutput) {
     $npmOutput | ForEach-Object { Write-Host ('  ' + $_) }
