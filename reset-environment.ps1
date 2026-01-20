@@ -96,13 +96,13 @@ try {
 # Frontend
 Write-Host '  Installing frontend dependencies...' -ForegroundColor Yellow
 Set-Location ../frontend
-try {
-    npm install 2>&1 | Out-Null
-    Write-Host '  OK: Frontend dependencies installed' -ForegroundColor Green
-} catch {
+$npmOutput = & npm.cmd install 2>&1
+if ($LASTEXITCODE -ne 0) {
     Write-Host '  ERROR: Frontend dependency install failed' -ForegroundColor Red
+    $npmOutput | ForEach-Object { Write-Host ('  ' + $_) -ForegroundColor Red }
     exit 1
 }
+Write-Host '  OK: Frontend dependencies installed' -ForegroundColor Green
 
 Set-Location ..
 
