@@ -1,122 +1,127 @@
-# 環境リセットスクリプト (PowerShell版)
-# ハンズオン中に問題が発生した場合、このスクリプトで環境をリセットできます
+# Environment reset script (PowerShell)
+# Use this script to reset the environment
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 
-# プロジェクトのルートディレクトリを取得
+# Get project root directory
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "環境リセットスクリプト" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Green
-Write-Host ""
+Write-Host '========================================' -ForegroundColor Green
+Write-Host 'Environment Reset Script' -ForegroundColor Green
+Write-Host '========================================' -ForegroundColor Green
+Write-Host ''
 
-# 確認プロンプト
-$confirmation = Read-Host "この操作は未コミットの変更をすべて削除します。続行しますか？ (y/N)"
-if ($confirmation -ne "y" -and $confirmation -ne "Y") {
-    Write-Host "リセットをキャンセルしました。" -ForegroundColor Yellow
+# Confirmation prompt
+$confirmation = Read-Host 'This will delete all uncommitted changes. Continue? (y/N)'
+if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
+    Write-Host 'Reset canceled.' -ForegroundColor Yellow
     exit 1
 }
 
-# ステップ1: 実行中のアプリケーションを停止
-Write-Host "[1/6] 実行中のアプリケーションを停止中..." -ForegroundColor Yellow
-Get-Process | Where-Object { $_.ProcessName -like "*java*" -or $_.ProcessName -like "*node*" } | 
-    Where-Object { $_.CommandLine -like "*spring-boot*" -or $_.CommandLine -like "*vite*" } | 
+# Step 1: Stop running applications
+Write-Host '[1/6] Stopping running applications...' -ForegroundColor Yellow
+Get-Process | Where-Object { $_.ProcessName -like '*java*' -or $_.ProcessName -like '*node*' } | 
+    Where-Object { $_.CommandLine -like '*spring-boot*' -or $_.CommandLine -like '*vite*' } | 
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
-Write-Host "✓ アプリケーションを停止しました" -ForegroundColor Green
+Write-Host 'OK: Applications stopped' -ForegroundColor Green
 
-# ステップ2: ポートが使用されていないか確認
-Write-Host "[2/6] ポートの使用状況を確認中..." -ForegroundColor Yellow
+# Step 2: Check ports
+Write-Host '[2/6] Checking port usage...' -ForegroundColor Yellow
 $port8080 = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
 $port5173 = Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue
 
 if ($port8080) {
-    Write-Host "ポート8080が使用されています。プロセスを終了します..." -ForegroundColor Yellow
+    Write-Host 'Port 8080 in use. Stopping process...' -ForegroundColor Yellow
     $port8080 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
 }
 if ($port5173) {
-    Write-Host "ポート5173が使用されています。プロセスを終了します..." -ForegroundColor Yellow
+    Write-Host 'Port 5173 in use. Stopping process...' -ForegroundColor Yellow
     $port5173 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
 }
-Write-Host "✓ ポートをクリアしました" -ForegroundColor Green
+Write-Host 'OK: Ports cleared' -ForegroundColor Green
 
-# ステップ3: バックエンドのクリーンアップ
-Write-Host "[3/6] バックエンドをクリーンアップ中..." -ForegroundColor Yellow
+# Step 3: Clean backend
+Write-Host '[3/6] Cleaning backend...' -ForegroundColor Yellow
 Set-Location backend
-if (Test-Path "pom.xml") {
+if (Test-Path 'pom.xml') {
     mvn clean 2>&1 | Out-Null
 }
-if (Test-Path "target") {
+if (Test-Path 'target') {
     Remove-Item -Recurse -Force target
 }
-Write-Host "✓ バックエンドをクリーンアップしました" -ForegroundColor Green
+Write-Host 'OK: Backend cleaned' -ForegroundColor Green
 
-# ステップ4: フロントエンドのクリーンアップ
-Write-Host "[4/6] フロントエンドをクリーンアップ中..." -ForegroundColor Yellow
+# Step 4: Clean frontend
+Write-Host '[4/6] Cleaning frontend...' -ForegroundColor Yellow
 Set-Location ../frontend
-if (Test-Path "node_modules") {
+if (Test-Path 'node_modules') {
     Remove-Item -Recurse -Force node_modules
 }
-if (Test-Path "dist") {
+if (Test-Path 'dist') {
     Remove-Item -Recurse -Force dist
 }
-if (Test-Path ".vite") {
+if (Test-Path '.vite') {
     Remove-Item -Recurse -Force .vite
 }
-Write-Host "✓ フロントエンドをクリーンアップしました" -ForegroundColor Green
+Write-Host 'OK: Frontend cleaned' -ForegroundColor Green
 
-# ステップ5: Gitの状態をリセット（オプション）
+# Step 5: Reset git state (optional)
 Set-Location ..
-Write-Host "[5/6] Gitの状態をリセット中..." -ForegroundColor Yellow
-$gitReset = Read-Host "Gitの未コミット変更をすべて破棄しますか？ (y/N)"
-if ($gitReset -eq "y" -or $gitReset -eq "Y") {
+Write-Host '[5/6] Resetting git state...' -ForegroundColor Yellow
+$gitReset = Read-Host 'Discard all uncommitted git changes? (y/N)'
+if ($gitReset -eq 'y' -or $gitReset -eq 'Y') {
     git reset --hard HEAD
     git clean -fd
-    Write-Host "✓ Gitの状態をリセットしました" -ForegroundColor Green
+    Write-Host 'OK: Git state reset' -ForegroundColor Green
 } else {
-    Write-Host "Gitのリセットをスキップしました" -ForegroundColor Yellow
+    Write-Host 'Skipped git reset' -ForegroundColor Yellow
 }
 
-# ステップ6: 依存関係を再インストール
-Write-Host "[6/6] 依存関係を再インストール中..." -ForegroundColor Yellow
+# Step 6: Reinstall dependencies
+Write-Host '[6/6] Reinstalling dependencies...' -ForegroundColor Yellow
 
-# バックエンド
-Write-Host "  バックエンドの依存関係をインストール中..." -ForegroundColor Yellow
+# Backend
+Write-Host '  Installing backend dependencies...' -ForegroundColor Yellow
 Set-Location backend
 try {
     mvn dependency:resolve 2>&1 | Out-Null
-    Write-Host "  ✓ バックエンドの依存関係をインストールしました" -ForegroundColor Green
+    Write-Host '  OK: Backend dependencies installed' -ForegroundColor Green
 } catch {
-    Write-Host "  バックエンドの依存関係のインストールに失敗しました" -ForegroundColor Red
+    Write-Host '  ERROR: Backend dependency install failed' -ForegroundColor Red
     exit 1
 }
 
-# フロントエンド
-Write-Host "  フロントエンドの依存関係をインストール中..." -ForegroundColor Yellow
+# Frontend
+Write-Host '  Installing frontend dependencies...' -ForegroundColor Yellow
 Set-Location ../frontend
-try {
-    npm install 2>&1 | Out-Null
-    Write-Host "  ✓ フロントエンドの依存関係をインストールしました" -ForegroundColor Green
-} catch {
-    Write-Host "  フロントエンドの依存関係のインストールに失敗しました" -ForegroundColor Red
+# Use cmd.exe to avoid PowerShell treating stderr as terminating errors
+$npmOutput = & cmd /c "npm.cmd install 2>&1"
+$npmExitCode = $LASTEXITCODE
+if ($npmOutput) {
+    $npmOutput | ForEach-Object { Write-Host ('  ' + $_) }
+}
+if ($npmExitCode -ne 0) {
+    Write-Host '  ERROR: Frontend dependency install failed' -ForegroundColor Red
     exit 1
 }
+Write-Host '  OK: Frontend dependencies installed' -ForegroundColor Green
+Write-Host '  NOTE: Warnings may appear above; install still succeeded.' -ForegroundColor Green
 
 Set-Location ..
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "環境リセットが完了しました！" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "次のコマンドでアプリケーションを起動できます："
-Write-Host ""
-Write-Host "  バックエンド:"
-Write-Host "    cd backend && mvn spring-boot:run"
-Write-Host ""
-Write-Host "  フロントエンド（別のターミナルで）:"
-Write-Host "    cd frontend && npm run dev"
-Write-Host ""
+Write-Host ''
+Write-Host '========================================' -ForegroundColor Green
+Write-Host 'Environment reset complete!' -ForegroundColor Green
+Write-Host '========================================' -ForegroundColor Green
+Write-Host ''
+Write-Host 'You can start the apps with:'
+Write-Host ''
+Write-Host '  Backend:'
+Write-Host '    cd backend; mvn spring-boot:run'
+Write-Host ''
+Write-Host '  Frontend (in another terminal):'
+Write-Host '    cd frontend; npm run dev'
+Write-Host ''
 
