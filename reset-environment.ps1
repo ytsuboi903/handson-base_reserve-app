@@ -106,6 +106,7 @@ if ($npmExitCode -ne 0) {
     exit 1
 }
 Write-Host '  OK: Frontend dependencies installed' -ForegroundColor Green
+Write-Host '  NOTE: Warnings may appear above; install still succeeded.' -ForegroundColor Green
 
 Set-Location ..
 
