@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { bookingApi, resourceApi } from '../services/api';
 import { Booking, Resource, BookingStatus } from '../types';
 import { format } from 'date-fns';
@@ -8,6 +9,7 @@ import { format } from 'date-fns';
  * Displays a list of all bookings with filtering options
  */
 const BookingList = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,10 @@ const BookingList = () => {
       alert('削除に失敗しました');
       console.error(err);
     }
+  };
+
+  const handleEdit = (id: number) => {
+    navigate(`/bookings/${id}/edit`);
   };
 
   const getStatusBadgeClass = (status: BookingStatus): string => {
@@ -170,16 +176,40 @@ const BookingList = () => {
                       {booking.status !== BookingStatus.CANCELLED && (
                         <button
                           onClick={() => handleCancel(booking.id!)}
-                          className="btn-cancel"
+                          className="btn-cancel btn-icon"
+                          aria-label="キャンセル"
+                          title="キャンセル"
                         >
-                          キャンセル
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path
+                              d="M6 6l12 12M18 6l-12 12"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete(booking.id!)}
-                        className="btn-delete"
+                        onClick={() => handleEdit(booking.id!)}
+                        className="btn-edit btn-icon"
+                        aria-label="変更"
+                        title="変更"
                       >
-                        削除
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M4 20h4l10-10-4-4L4 16v4z" fill="currentColor" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(booking.id!)}
+                        className="btn-delete btn-icon"
+                        aria-label="削除"
+                        title="削除"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M6 7h12l-1 13H7L6 7zm3-3h6l1 2H8l1-2z" fill="currentColor" />
+                        </svg>
                       </button>
                     </div>
                   </td>

@@ -101,7 +101,9 @@ describe('ResourceList', () => {
     await user.type(searchInput, '会議室A');
 
     await waitFor(() => {
-      expect(api.resourceApi.getAll).toHaveBeenCalledWith({ search: '会議室A' });
+      expect(screen.getAllByText(/会議室A/i).length).toBeGreaterThan(0);
+      expect(screen.queryByText(/会議室B/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/会議室C/i)).not.toBeInTheDocument();
     });
   });
 
@@ -138,7 +140,9 @@ describe('ResourceList', () => {
     await user.clear(searchInput);
 
     await waitFor(() => {
-      expect(api.resourceApi.getAll).toHaveBeenCalledWith(undefined);
+      expect(screen.getAllByText(/会議室A/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/会議室B/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/会議室C/i).length).toBeGreaterThan(0);
     });
   });
 });

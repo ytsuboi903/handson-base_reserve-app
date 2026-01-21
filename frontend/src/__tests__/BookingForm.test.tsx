@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import BookingForm from '../components/BookingForm';
 import * as api from '../services/api';
+import { BookingStatus } from '../types';
 
 vi.mock('../services/api');
 
@@ -11,15 +13,37 @@ const mockResources = [
 ];
 
 describe('BookingForm', () => {
+  const renderWithRoute = (initialPath: string) => {
+    return render(
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route path="/new-booking" element={<BookingForm />} />
+          <Route path="/bookings/:id/edit" element={<BookingForm />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     (api.resourceApi.getAll as unknown as vi.Mock).mockResolvedValue(mockResources);
     (api.bookingApi.checkAvailability as unknown as vi.Mock).mockResolvedValue({ available: true });
     (api.bookingApi.create as unknown as vi.Mock).mockResolvedValue({ id: 1 });
+    (api.bookingApi.getById as unknown as vi.Mock).mockResolvedValue({
+      id: 1,
+      resourceId: 1,
+      customerName: 'テストユーザー',
+      customerEmail: 'test@example.com',
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 3600000).toISOString(),
+      status: BookingStatus.CONFIRMED,
+      notes: '初期メモ',
+    });
+    (api.bookingApi.update as unknown as vi.Mock).mockResolvedValue({ id: 1 });
   });
 
   it('renders form fields', async () => {
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(screen.getByLabelText(/リソース/i)).toBeInTheDocument();
@@ -31,7 +55,7 @@ describe('BookingForm', () => {
   });
 
   it('loads resources on mount', async () => {
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(api.resourceApi.getAll).toHaveBeenCalledWith({ available: true });
@@ -44,7 +68,7 @@ describe('BookingForm', () => {
 
   it('shows error when required fields are missing', async () => {
     const user = userEvent.setup();
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(screen.getByText(/予約を作成/i)).toBeInTheDocument();
@@ -71,7 +95,7 @@ describe('BookingForm', () => {
 
   it('validates end time is after start time', async () => {
     const user = userEvent.setup();
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(screen.getByLabelText(/開始時刻/i)).toBeInTheDocument();
@@ -110,7 +134,7 @@ describe('BookingForm', () => {
 
   it('creates booking when form is valid', async () => {
     const user = userEvent.setup();
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(screen.getByLabelText(/リソース/i)).toBeInTheDocument();
@@ -151,7 +175,7 @@ describe('BookingForm', () => {
     const user = userEvent.setup();
     (api.bookingApi.checkAvailability as unknown as vi.Mock).mockResolvedValue({ available: false });
 
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(screen.getByLabelText(/リソース/i)).toBeInTheDocument();
@@ -192,7 +216,7 @@ describe('BookingForm', () => {
       response: { data: { error: '予約の作成に失敗しました' } },
     });
 
-    render(<BookingForm />);
+    renderWithRoute('/new-booking');
 
     await waitFor(() => {
       expect(screen.getByLabelText(/リソース/i)).toBeInTheDocument();
@@ -224,6 +248,29 @@ describe('BookingForm', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/予約の作成に失敗しました/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows status select and updates booking in edit mode', async () => {
+    const user = userEvent.setup();
+    renderWithRoute('/bookings/1/edit');
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/ステータス/i)).toBeInTheDocument();
+    });
+
+    const statusSelect = screen.getByLabelText(/ステータス/i);
+    await user.selectOptions(statusSelect, BookingStatus.CANCELLED);
+
+    const submitButton = screen.getByText(/予約を更新/i);
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(api.bookingApi.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ status: BookingStatus.CANCELLED })
+      );
+      expect(screen.getByText(/予約が正常に更新されました/i)).toBeInTheDocument();
     });
   });
 });
