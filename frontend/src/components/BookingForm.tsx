@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { bookingApi, resourceApi } from '../services/api';
 import { Booking, Resource, BookingStatus } from '../types';
 
@@ -7,8 +8,11 @@ import { Booking, Resource, BookingStatus } from '../types';
  * Form for creating new bookings
  */
 const BookingForm = () => {
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingBooking, setLoadingBooking] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -17,12 +21,16 @@ const BookingForm = () => {
     customerEmail: '',
     startTime: '',
     endTime: '',
+    status: BookingStatus.CONFIRMED,
     notes: '',
   });
 
   useEffect(() => {
     fetchResources();
-  }, []);
+    if (isEditMode) {
+      fetchBooking();
+    }
+  }, [isEditMode]);
 
   const fetchResources = async () => {
     try {
@@ -33,11 +41,44 @@ const BookingForm = () => {
     }
   };
 
+  const toLocalInputValue = (dateString: string) => {
+    const date = new Date(dateString);
+    const offsetMinutes = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offsetMinutes * 60000);
+    return localDate.toISOString().slice(0, 16);
+  };
+
+  const fetchBooking = async () => {
+    if (!id) {
+      return;
+    }
+
+    try {
+      setLoadingBooking(true);
+      const booking = await bookingApi.getById(Number(id));
+      setFormData({
+        resourceId: booking.resourceId.toString(),
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        startTime: toLocalInputValue(booking.startTime),
+        endTime: toLocalInputValue(booking.endTime),
+        status: booking.status,
+        notes: booking.notes || '',
+      });
+    } catch (err) {
+      console.error('Failed to fetch booking:', err);
+      setMessage({ type: 'error', text: '予約情報の取得に失敗しました' });
+    } finally {
+      setLoadingBooking(false);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    const updatedValue = name === 'status' ? (value as BookingStatus) : value;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: updatedValue,
     }));
   };
 
@@ -61,7 +102,23 @@ const BookingForm = () => {
     try {
       setLoading(true);
 
-      // Check availability
+      const booking: Booking = {
+        resourceId: parseInt(formData.resourceId),
+        customerName: formData.customerName,
+        customerEmail: formData.customerEmail,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        status: isEditMode ? formData.status : BookingStatus.CONFIRMED,
+        notes: formData.notes || undefined,
+      };
+
+      if (isEditMode && id) {
+        await bookingApi.update(Number(id), booking);
+        setMessage({ type: 'success', text: '予約が正常に更新されました' });
+        return;
+      }
+
+      // Check availability for new booking
       const availability = await bookingApi.checkAvailability(
         parseInt(formData.resourceId),
         formData.startTime,
@@ -74,17 +131,6 @@ const BookingForm = () => {
         return;
       }
 
-      // Create booking
-      const booking: Booking = {
-        resourceId: parseInt(formData.resourceId),
-        customerName: formData.customerName,
-        customerEmail: formData.customerEmail,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        status: BookingStatus.CONFIRMED,
-        notes: formData.notes || undefined,
-      };
-
       await bookingApi.create(booking);
       setMessage({ type: 'success', text: '予約が正常に作成されました' });
       
@@ -95,10 +141,12 @@ const BookingForm = () => {
         customerEmail: '',
         startTime: '',
         endTime: '',
+        status: BookingStatus.CONFIRMED,
         notes: '',
       });
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || '予約の作成に失敗しました';
+      const fallbackMessage = isEditMode ? '予約の更新に失敗しました' : '予約の作成に失敗しました';
+      const errorMessage = err.response?.data?.error || fallbackMessage;
       setMessage({ type: 'error', text: errorMessage });
       console.error(err);
     } finally {
@@ -106,9 +154,13 @@ const BookingForm = () => {
     }
   };
 
+  if (loadingBooking) {
+    return <div className="loading">読み込み中...</div>;
+  }
+
   return (
     <div className="booking-form">
-      <h2>新規予約</h2>
+      <h2>{isEditMode ? '予約変更' : '新規予約'}</h2>
       
       {message && (
         <div className={`message ${message.type}`}>
@@ -185,6 +237,23 @@ const BookingForm = () => {
           </div>
         </div>
 
+        {isEditMode && (
+          <div className="form-group">
+            <label htmlFor="status">ステータス *</label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              required
+            >
+              <option value={BookingStatus.CONFIRMED}>確定</option>
+              <option value={BookingStatus.PENDING}>保留中</option>
+              <option value={BookingStatus.CANCELLED}>キャンセル</option>
+            </select>
+          </div>
+        )}
+
         <div className="form-group">
           <label htmlFor="notes">備考</label>
           <textarea
@@ -197,7 +266,7 @@ const BookingForm = () => {
         </div>
 
         <button type="submit" className="btn-submit" disabled={loading}>
-          {loading ? '処理中...' : '予約を作成'}
+          {loading ? '処理中...' : isEditMode ? '予約を更新' : '予約を作成'}
         </button>
       </form>
     </div>

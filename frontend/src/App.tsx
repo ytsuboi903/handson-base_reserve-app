@@ -25,6 +25,7 @@ function App() {
             <Route path="/" element={<BookingList />} />
             <Route path="/resources" element={<ResourceList />} />
             <Route path="/new-booking" element={<BookingForm />} />
+            <Route path="/bookings/:id/edit" element={<BookingForm />} />
           </Routes>
         </main>
 

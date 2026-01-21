@@ -1,9 +1,18 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import BookingList from '../components/BookingList';
 import * as api from '../services/api';
 
 vi.mock('../services/api');
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 const mockBookings = [
   {
@@ -33,6 +42,14 @@ const mockResources = [
 ];
 
 describe('BookingList', () => {
+  const renderWithRouter = () => {
+    return render(
+      <MemoryRouter>
+        <BookingList />
+      </MemoryRouter>
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     (api.bookingApi.getAll as unknown as vi.Mock).mockResolvedValue(mockBookings);
@@ -40,7 +57,7 @@ describe('BookingList', () => {
   });
 
   it('renders booking list', async () => {
-    render(<BookingList />);
+    renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText(/予約一覧/i)).toBeInTheDocument();
@@ -55,14 +72,14 @@ describe('BookingList', () => {
       () => new Promise(() => {}) // Never resolves
     );
 
-    render(<BookingList />);
+    renderWithRouter();
 
     expect(screen.getByText(/読み込み中/i)).toBeInTheDocument();
   });
 
   it('filters bookings by status', async () => {
     const user = userEvent.setup();
-    render(<BookingList />);
+    renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText(/テストユーザー1/i)).toBeInTheDocument();
@@ -79,21 +96,21 @@ describe('BookingList', () => {
   });
 
   it('shows cancel button for confirmed bookings', async () => {
-    render(<BookingList />);
+    renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText(/テストユーザー1/i)).toBeInTheDocument();
     });
 
     // キャンセルボタンを探す（CONFIRMEDステータスの予約のみに表示される）
-    const cancelButtons = await screen.findAllByText(/キャンセル/i);
+    const cancelButtons = await screen.findAllByRole('button', { name: 'キャンセル' });
     expect(cancelButtons.length).toBeGreaterThan(0);
   });
 
   it('shows error message when API call fails', async () => {
     (api.bookingApi.getAll as unknown as vi.Mock).mockRejectedValue(new Error('API Error'));
 
-    render(<BookingList />);
+    renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText(/予約の取得に失敗しました/i)).toBeInTheDocument();
@@ -103,11 +120,25 @@ describe('BookingList', () => {
   it('shows no bookings message when list is empty', async () => {
     (api.bookingApi.getAll as unknown as vi.Mock).mockResolvedValue([]);
 
-    render(<BookingList />);
+    renderWithRouter();
 
     await waitFor(() => {
       expect(screen.getByText(/予約がありません/i)).toBeInTheDocument();
     });
+  });
+
+  it('shows edit button for all bookings and navigates', async () => {
+    renderWithRouter();
+
+    await waitFor(() => {
+      expect(screen.getByText(/テストユーザー1/i)).toBeInTheDocument();
+    });
+
+    const editButtons = screen.getAllByRole('button', { name: '変更' });
+    expect(editButtons).toHaveLength(2);
+
+    await userEvent.click(editButtons[0]);
+    expect(mockNavigate).toHaveBeenCalledWith('/bookings/1/edit');
   });
 });
 

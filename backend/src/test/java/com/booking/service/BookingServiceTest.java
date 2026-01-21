@@ -6,6 +6,7 @@ import com.booking.repository.BookingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -305,6 +306,27 @@ class BookingServiceTest {
         verify(bookingRepository).findById(bookingId);
         verify(bookingRepository, never()).findConflictingBookings(any(), any(), any(), anyList());
         verify(bookingRepository).save(any(Booking.class));
+    }
+
+    @Test
+    void should_updateStatus_when_bookingStatusChanges() {
+        // Arrange
+        Long bookingId = 1L;
+        Booking existingBooking = createTestBooking();
+        Booking updatedData = createTestBooking();
+        updatedData.setStatus(BookingStatus.CANCELLED);
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(existingBooking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Booking result = bookingService.updateBooking(bookingId, updatedData);
+
+        // Assert
+        ArgumentCaptor<Booking> bookingCaptor = ArgumentCaptor.forClass(Booking.class);
+        verify(bookingRepository).save(bookingCaptor.capture());
+        assertThat(result.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        assertThat(bookingCaptor.getValue().getStatus()).isEqualTo(BookingStatus.CANCELLED);
     }
 
     @Test

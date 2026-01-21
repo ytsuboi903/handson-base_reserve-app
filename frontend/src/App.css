@@ -218,6 +218,20 @@ button {
   transition: all 0.3s;
 }
 
+.btn-icon {
+  padding: 0.45rem;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 .btn-cancel {
   background-color: #ffc107;
   color: #000;
@@ -225,6 +239,15 @@ button {
 
 .btn-cancel:hover {
   background-color: #ffb300;
+}
+
+.btn-edit {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #0b5ed7;
 }
 
 .btn-delete {
