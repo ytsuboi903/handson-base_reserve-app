@@ -3,6 +3,23 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import BookingList from '../components/BookingList';
 import * as api from '../services/api';
+import NotificationModal from '../components/NotificationModal';
+const mockNotifications = [
+  {
+    id: 1,
+    title: '予約作成完了',
+    startTime: '2026-01-29T10:00:00',
+    endTime: '2026-01-29T12:00:00',
+    resourceId: 1,
+  },
+  {
+    id: 2,
+    title: '予約作成完了',
+    startTime: '2026-01-30T09:00:00',
+    endTime: '2026-01-30T10:00:00',
+    resourceId: 2,
+  },
+];
 
 vi.mock('../services/api');
 const mockNavigate = vi.fn();
@@ -54,6 +71,37 @@ describe('BookingList', () => {
     vi.clearAllMocks();
     (api.bookingApi.getAll as unknown as vi.Mock).mockResolvedValue(mockBookings);
     (api.resourceApi.getAll as unknown as vi.Mock).mockResolvedValue(mockResources);
+    (api.notificationApi.getAll as unknown as vi.Mock).mockResolvedValue(mockNotifications);
+  });
+  it('通知一覧リンクが表示され、クリックでモーダルが開く', async () => {
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByText('通知一覧')).toBeInTheDocument();
+    });
+    const notificationLink = screen.getAllByText('通知一覧').find(el => el.tagName === 'BUTTON');
+    fireEvent.click(notificationLink!);
+    await waitFor(() => {
+      // モーダルのタイトル(h3)が表示されていること
+      expect(screen.getAllByText('通知一覧').some(el => el.tagName === 'H3')).toBe(true);
+      expect(screen.getAllByText('予約作成完了').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('通知モーダルで日付フィルタが動作する', async () => {
+    renderWithRouter();
+    await waitFor(() => {
+      expect(screen.getByText('通知一覧')).toBeInTheDocument();
+    });
+    const notificationLink = screen.getAllByText('通知一覧').find(el => el.tagName === 'BUTTON');
+    fireEvent.click(notificationLink!);
+    await waitFor(() => {
+      expect(screen.getAllByText('通知一覧').some(el => el.tagName === 'H3')).toBe(true);
+    });
+    const input = screen.getByLabelText('開始日でフィルタ:');
+    fireEvent.change(input, { target: { value: '2026-01-29' } });
+    // 1件のみ表示されること
+    expect(screen.getAllByText('予約作成完了').length).toBe(1);
+    expect(screen.getByText('2026/01/29 10:00')).toBeInTheDocument();
   });
 
   it('renders booking list', async () => {

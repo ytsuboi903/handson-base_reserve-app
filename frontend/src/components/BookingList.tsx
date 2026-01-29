@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { bookingApi, resourceApi } from '../services/api';
 import { Booking, Resource, BookingStatus } from '../types';
 import { format } from 'date-fns';
+import NotificationModal from './NotificationModal';
 
 /**
  * BookingList Component
@@ -15,6 +16,7 @@ const BookingList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<BookingStatus | ''>('');
+  const [notificationModalOpen, setNotificationModalOpen] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -135,6 +137,14 @@ const BookingList = () => {
               </select>
             </label>
           </div>
+          <div className="notification-link-area">
+            <button
+              className="notification-link"
+              onClick={() => setNotificationModalOpen(true)}
+            >
+              通知一覧
+            </button>
+          </div>
         </div>
       </div>
 
@@ -219,6 +229,7 @@ const BookingList = () => {
           </table>
         </div>
       )}
+      <NotificationModal open={notificationModalOpen} onClose={() => setNotificationModalOpen(false)} />
     </div>
   );
 };

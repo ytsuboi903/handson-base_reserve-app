@@ -2,7 +2,14 @@
  * API service for communicating with the backend
  */
 import axios from 'axios';
-import { Resource, Booking, BookingStatus, AvailabilityCheck } from '../types';
+import { Resource, Booking, BookingStatus, AvailabilityCheck, Notification } from '../types';
+// Notification API
+export const notificationApi = {
+  getAll: async (): Promise<Notification[]> => {
+    const response = await api.get('/notifications');
+    return response.data;
+  },
+};
 
 const API_BASE_URL = '/api';
 
