@@ -27,13 +27,81 @@ import static org.mockito.Mockito.*;
  * Unit tests for BookingService
  */
 @ExtendWith(MockitoExtension.class)
+
 class BookingServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private BookingService bookingService;
+    @Test
+    void should_createNotification_when_bookingCreated() {
+    // Arrange
+    Booking newBooking = createTestBooking();
+    newBooking.setId(null);
+    when(bookingRepository.findConflictingBookings(
+        eq(newBooking.getResourceId()), any(LocalDateTime.class), any(LocalDateTime.class), anyList()))
+        .thenReturn(Collections.emptyList());
+    Booking savedBooking = createTestBooking();
+    when(bookingRepository.save(newBooking)).thenReturn(savedBooking);
+
+    // Act
+    bookingService.createBooking(newBooking);
+
+    // Assert
+    verify(notificationService).createBookingNotification(
+        eq(savedBooking.getId()),
+        eq("予約作成完了"),
+        eq("CREATED"),
+        eq(savedBooking.getStartTime()),
+        eq(savedBooking.getEndTime()),
+        eq(savedBooking.getResourceId())
+    );
+    }
+
+    @Test
+    void should_includeNotificationInfo_when_bookingCreated() {
+    // Arrange
+    Booking newBooking = createTestBooking();
+    newBooking.setId(null);
+    when(bookingRepository.findConflictingBookings(
+        eq(newBooking.getResourceId()), any(LocalDateTime.class), any(LocalDateTime.class), anyList()))
+        .thenReturn(Collections.emptyList());
+    Booking savedBooking = createTestBooking();
+    when(bookingRepository.save(newBooking)).thenReturn(savedBooking);
+
+    // 通知内容を検証するためのNotificationの内容
+    doAnswer(invocation -> {
+        Long bookingId = invocation.getArgument(0);
+        String title = invocation.getArgument(1);
+        String type = invocation.getArgument(2);
+        LocalDateTime startAt = invocation.getArgument(3);
+        LocalDateTime endAt = invocation.getArgument(4);
+        Long resourceId = invocation.getArgument(5);
+        assertThat(title).isEqualTo("予約作成完了");
+        assertThat(type).isEqualTo("CREATED");
+        assertThat(startAt).isEqualTo(savedBooking.getStartTime());
+        assertThat(endAt).isEqualTo(savedBooking.getEndTime());
+        assertThat(resourceId).isEqualTo(savedBooking.getResourceId());
+        return null;
+    }).when(notificationService).createBookingNotification(any(), any(), any(), any(), any(), any());
+
+    // Act
+    bookingService.createBooking(newBooking);
+
+    // Assert
+    verify(notificationService).createBookingNotification(
+        eq(savedBooking.getId()),
+        eq("予約作成完了"),
+        eq("CREATED"),
+        eq(savedBooking.getStartTime()),
+        eq(savedBooking.getEndTime()),
+        eq(savedBooking.getResourceId())
+    );
+    }
 
     private Booking testBooking;
     private LocalDateTime testStartTime;

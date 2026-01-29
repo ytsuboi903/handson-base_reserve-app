@@ -15,12 +15,15 @@ import java.util.Optional;
 /**
  * Service layer for Booking management
  */
+import com.booking.service.NotificationService;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+    private final NotificationService notificationService;
 
     /**
      * Get all bookings
@@ -128,6 +131,16 @@ public class BookingService {
         }
 
         Booking created = bookingRepository.save(booking);
+
+        // 通知データを作成
+        notificationService.createBookingNotification(
+            created.getId(),
+            "予約作成完了",
+            "CREATED",
+            created.getStartTime(),
+            created.getEndTime(),
+            created.getResourceId()
+        );
 
         return created;
     }
